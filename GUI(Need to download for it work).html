@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>2-3 Tree Navigator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Press Start 2P', cursive, Arial;
+      background-color: #3c2f2f;
+      color: #fff;
+      text-align: center;
+      overflow: hidden; 
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    #gameContainer {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start; 
+      align-items: center;
+      padding-top: 20px; 
+      box-sizing: border-box;
+    }
+
+    #controls {
+      background: #5c4033;
+      border: 4px solid #9c6c3c;
+      border-radius: 8px;
+      padding: 10px;
+      display: inline-block;
+      margin-bottom: 10px; 
+    }
+
+    button {
+      background-color: #d28e38;
+      border: 3px solid #734f20;
+      padding: 10px 15px;
+      margin: 5px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 12px;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 2px 2px #4a2f13;
+      transition: transform 0.1s;
+    }
+
+    button:hover {
+      background-color: #e9a14c;
+    }
+
+    button:active {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    button:disabled {
+      background-color: #555;
+      border-color: #333;
+      color: #999;
+      cursor: not-allowed;
+    }
+
+    #status, #timer {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 14px;
+      margin: 5px 0; 
+      color: #ffe57f;
+      text-shadow: 1px 1px #000;
+    }
+
+    canvas {
+      display: block;
+      border: 4px solid #9c6c3c;
+      background: #1e1e1e;
+      margin-top: 10px; 
+    }
+
+    #startScreen, #gameOverScreen, #howToPlayScreen, #victoryScreen { 
+      position: absolute;
+      top:0; left:0; 
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.85); 
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    /* --- Start Screen Panel Redesign --- */
+    #gameTitle { /* Title above the panel */
+      font-size: 28px; 
+      color: #ffd700;
+      text-shadow: 2px 2px #8b4513;
+      margin-bottom: 15px; /* Space between title and panel */
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); } /* Smaller pulse */
+      100% { transform: scale(1); }
+    }
+
+    #startScreenPanel {
+        background-color: #7a5a3e; /* Darker brown for the main border/frame */
+        border: 3px solid #4a3728; /* Even darker edge for the frame */
+        border-radius: 10px;
+        padding: 5px; /* Padding to create the frame effect */
+        width: 90%;
+        max-width: 550px; /* Increased max width */
+        box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+
+    #startScreenTabs {
+        background-color: #a17a58; /* Medium brown for tab bar background */
+        padding: 8px 8px 0 8px; /* Padding around tabs, no bottom padding */
+        border-radius: 6px 6px 0 0; /* Rounded top corners for tab bar area */
+        display: flex;
+        border-bottom: 3px solid #7a5a3e; /* Line separating tabs from content */
+    }
+
+    .tab {
+        font-family: 'Press Start 2P', cursive;
+        font-size: 12px;
+        padding: 10px 20px;
+        margin-right: 5px;
+        background-color: #c8a676; /* Unselected tab color */
+        color: #5e452f;
+        border: 2px solid #7a5a3e;
+        border-bottom: none; /* No bottom border for unselected tabs above the line */
+        border-radius: 6px 6px 0 0;
+        cursor: default; /* No action for these tabs currently */
+    }
+
+    .tab.active {
+        background-color: #f0dcb3; /* Light tan for selected tab, same as content area */
+        color: #3c2f2f; /* Darker text for selected tab */
+        border: 2px solid #7a5a3e; /* Border matches panel border */
+        border-bottom: 2px solid #f0dcb3; /* Bottom border same as bg to "merge" */
+        position: relative;
+        top: 1px; /* Slightly overlap the dividing line */
+    }
+    
+    #startScreenContent {
+        background-color: #f0dcb3; /* Light tan content area */
+        padding: 25px;
+        border-radius: 0 0 6px 6px; /* Rounded bottom corners */
+        color: #3c2f2f; /* Dark text for content */
+    }
+
+    #optionsContainer { /* Remove original styling, now part of #startScreenContent */
+      background: transparent;
+      border: none;
+      padding: 0;
+      width: 100%; /* Take full width of its new parent */
+    }
+
+    .optionRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 12px 0; /* Increased margin */
+    }
+    .optionRow select {
+        font-family: 'Press Start 2P', cursive;
+        padding: 6px; /* Slightly larger padding */
+        background: #fff; /* White background for select */
+        border: 2px solid #7a5a3e;
+        color: #3c2f2f;
+        border-radius: 4px;
+    }
+
+    .optionLabel {
+      text-align: left;
+      color: #5e452f; /* Darker brown for labels */
+      font-size: 12px; 
+    }
+
+    #startScreenContent #startButton { /* Target buttons inside new structure */
+      margin-top: 25px;
+      font-size: 16px; 
+      padding: 12px 25px;
+      background-color: #2ecc71;
+      border-color: #27ae60;
+      color: #fff;
+    }
+     #startScreenContent #startButton:hover {
+      background-color: #27ae60;
+    }
+
+    #startScreenContent .menuButton {
+      margin-top: 15px;
+      font-size: 14px; 
+      padding: 10px 20px;
+      background-color: #d28e38; /* Consistent button color */
+      border-color: #734f20;
+      color: #fff;
+    }
+    #startScreenContent .menuButton:hover {
+      background-color: #e9a14c;
+    }
+    /* --- End Start Screen Panel Redesign --- */
+
+
+    #gameOverTitle {
+      font-size: 32px;
+      color: #ff6347; 
+      text-shadow: 3px 3px #8b0000;
+      margin-bottom: 20px;
+    }
+
+    #finalScore {
+      font-size: 20px;
+      color: #ffd700;
+      margin-bottom: 30px;
+    }
+
+    #victoryTitle { 
+      font-size: 36px;
+      color: #2ecc71; 
+      text-shadow: 3px 3px #1a535c; 
+      margin-bottom: 20px;
+    }
+
+    #victoryScore { 
+      font-size: 24px;
+      color: #ffd700;
+      margin-bottom: 40px;
+    }
+
+
+    #howToPlayScreen h2 {
+        font-size: 24px;
+        color: #ffd700;
+        margin-bottom: 20px;
+    }
+    #howToPlayScreen div {
+        width: 90%;
+        max-width: 600px;
+        margin: 0 auto;
+        text-align: left;
+        padding: 20px;
+        background: #5c4033;
+        border: 4px solid #9c6c3c;
+        border-radius: 8px;
+        font-size: 12px;
+        line-height: 1.6;
+    }
+    #howToPlayScreen ul {
+        padding-left: 20px;
+    }
+    #howToPlayScreen li {
+        margin-bottom: 8px;
+    }
+
+
+    .hidden {
+      display: none !important;
+    }
+
+    #gameScreen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <!-- Start Screen - MODIFIED STRUCTURE -->
+    <div id="startScreen">
+        <h1 id="gameTitle">2-3 Tree Navigator</h1>
+        <div id="startScreenPanel">
+            <div id="startScreenTabs">
+                <div class="tab active">Game Options</div>
+                <!-- You could add more non-functional tabs here for pure aesthetics if desired -->
+                <!-- <div class="tab">High Scores</div> -->
+                <!-- <div class="tab">Credits</div> -->
+            </div>
+            <div id="startScreenContent">
+                <div id="optionsContainer">
+                    <div class="optionRow">
+                      <span class="optionLabel">Game Mode:</span>
+                      <select id="gameMode">
+                        <option value="endless">Endless Mode</option>
+                        <option value="timed">Timed Mode</option>
+                        <option value="practice">Practice Mode</option>
+                      </select>
+                    </div>
+                    <div class="optionRow">
+                      <span class="optionLabel">Difficulty:</span>
+                      <select id="difficulty">
+                        <option value="easy">Easy</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="hard">Hard</option>
+                      </select>
+                    </div>
+                    <div class="optionRow">
+                      <span class="optionLabel">Starting Level:</span>
+                      <select id="startingLevel">
+                        <option value="1">Level 1</option>
+                        <option value="2">Level 2</option>
+                        <option value="3">Level 3</option>
+                        <option value="4">Level 4</option>
+                        <option value="5">Level 5</option>
+                      </select>
+                    </div>
+                </div>
+                <button id="startButton">START GAME</button>
+                <button id="howToPlayButton" class="menuButton">How To Play</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="hidden">
+      <h2 id="gameOverTitle">Game Over!</h2>
+      <p id="finalScore">Final Score: 0</p>
+      <button id="playAgainButtonGameOver">Play Again</button>
+      <button id="returnToMenuButtonGameOver" class="menuButton">Return to Menu</button>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victoryScreen" class="hidden">
+      <h2 id="victoryTitle">Victory!</h2>
+      <p id="victoryScore">Final Score: 0</p>
+      <button id="playAgainButtonVictory">Play Again</button>
+      <button id="returnToMenuButtonVictory" class="menuButton">Return to Menu</button>
+    </div>
+
+
+    <!-- How To Play Screen -->
+    <div id="howToPlayScreen" class="hidden">
+      <h2>How To Play</h2>
+      <div>
+        <p>2-3 Tree Navigator is a game where you learn about 2-3 trees while having fun!</p>
+        <h3>Objective:</h3>
+        <p>Correctly insert the given numbers into the 2-3 tree.</p>
+        <h3>Game Flow:</h3>
+        <ul>
+          <li>A number to insert will be shown (e.g., "Insert 42 into the tree!").</li>
+          <li>The root of the tree will be selected initially.</li>
+          <li>If the current node is not a leaf:
+            <ul>
+              <li>Use '← Left', '↓ Middle', or '→ Right' to navigate to the child where the number should go.</li>
+              <li>'↓ Middle' is only available if the current node has 2 keys (and thus 3 children).</li>
+            </ul>
+          </li>
+          <li>If the current node IS a leaf:
+            <ul>
+              <li>Use '← Left', '↓ Middle', or '→ Right' to specify where to insert the number within that leaf node.</li>
+              <li>'↓ Middle' is used if inserting between two existing keys in a 2-key leaf.</li>
+            </ul>
+          </li>
+          <li>If inserting a number causes a leaf node to have 3 keys (e.g., [10, 20, 30]), it's full.
+              The 'Split Node' button will enable. Click it to split the node.</li>
+          <li>Splitting promotes the middle key. This might cause parent nodes to become full and require further splits.</li>
+        </ul>
+        <h3>Game Modes:</h3>
+        <ul>
+          <li><b>Endless Mode:</b> Keep playing. One mistake ends the game.</li>
+          <li><b>Timed Mode:</b> Complete levels up to Level 10 to win. Incorrect actions cause time penalties.</li>
+          <li><b>Practice Mode:</b> No timer, no penalties. Learn at your own pace.</li>
+        </ul>
+        <h3>Scoring:</h3>
+        <ul>
+          <li>+10 points for each correct insertion into a leaf.</li>
+          <li>+20 points for each correct split.</li>
+          <li>+50 points for completing a level.</li>
+          <li>Time bonus in Timed Mode for remaining time.</li>
+        </ul>
+      </div>
+      <button id="backButton" class="menuButton">Back to Menu</button>
+    </div>
+
+    <!-- Game Screen (Controls, Status, Timer) -->
+    <div id="gameScreen" class="hidden">
+      <div id="controls">
+        <button id="leftArrow">← Left</button>
+        <button id="middleArrow">↓ Middle</button>
+        <button id="rightArrow">→ Right</button>
+        <button id="splitButton" disabled>Split Node</button>
+        <button id="menuButton">Menu</button>
+      </div>
+      <div id="status">Insert the first number!</div>
+      <div id="timer">Time Left: 0s</div>
+      <div id="gameScreenCanvasContainer" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <script>
+    class Node {
+      constructor() {
+        this.keys = [];
+        this.children = [];
+        this.parent = null;
+      }
+      isLeaf() {
+        return this.children.length === 0;
+      }
+      isFull() {
+        return this.keys.length === 3;
+      }
+    }
+
+    // Game variables
+    let root = null;
+    let currentNode = null;
+    let score = 0;
+    let level = 1;
+    let numbersToInsert = [];
+    let currentNumber = null;
+    let needsSplit = false;
+    let status = "Insert the first number!";
+    let timeLeft = 0;
+    let timerRunning = false;
+    let gameMode = "timed";
+    let difficulty = "normal";
+    let gameState = "menu"; 
+    let timeBonus = 0;
+    let gameCanvas;
+    let difficultySettings = {
+      easy: { baseTime: 60, timePerLevel: 15, penaltyFactor: 0.5 },
+      normal: { baseTime: 45, timePerLevel: 10, penaltyFactor: 1.0 },
+      hard: { baseTime: 30, timePerLevel: 5, penaltyFactor: 1.5 }
+    };
+    const TIMED_MODE_MAX_LEVEL = 10; 
+
+    function setup() {
+      gameCanvas = createCanvas(800, 450); 
+      gameCanvas.parent('gameScreenCanvasContainer'); 
+      textAlign(CENTER, CENTER);
+      textSize(14); 
+      textFont('Press Start 2P');
+      setupEventListeners();
+      showMenu(); 
+    }
+
+    function draw() {
+      background(30); 
+      
+      if (gameState === "playing") {
+        fill(255);
+        textSize(16);
+        text(`Score: ${score} | Level: ${level}`, width / 2, 25); 
+        
+        let timerDisplayY = 50; 
+        textSize(14);
+        if (gameMode === "timed") {
+          let maxTime = getMaxTime(); 
+          let timerWidth = maxTime > 0 ? map(timeLeft, 0, maxTime, 0, 200) : 0;
+          fill(timeLeft < 10 ? color(255, 0, 0) : color(0, 255, 0));
+          rectMode(CORNER);
+          rect(width / 2 - 100, timerDisplayY - 10, timerWidth, 20, 5); 
+          fill(255);
+          text(`Time: ${ceil(timeLeft)}s`, width / 2, timerDisplayY);
+        } else if (gameMode === "endless") {
+          text("Endless Mode", width / 2, timerDisplayY);
+        } else {
+          text("Practice Mode", width / 2, timerDisplayY);
+        }
+
+        if (currentNumber !== null) {
+            const insertNodeX = 80; 
+            const insertNodeY = 80;
+            const insertNodeWidth = 40 + String(currentNumber).length * 12 + 20; 
+            const insertNodeHeight = 35;
+
+            fill(180, 180, 220); 
+            stroke(92, 64, 51);
+            strokeWeight(2);
+            rectMode(CENTER);
+            rect(insertNodeX, insertNodeY, insertNodeWidth, insertNodeHeight, 5);
+            
+            fill(0); 
+            noStroke();
+            textSize(12);
+            text(currentNumber, insertNodeX, insertNodeY);
+
+            textSize(10);
+            fill(255);
+            text("Insert:", insertNodeX, insertNodeY - insertNodeHeight/2 - 12);
+        }
+        
+        if (root) {
+            drawTree(root, width / 2, 120, width); 
+        }
+        
+        if (gameMode === "timed" && timerRunning && timeLeft > 0) {
+          timeLeft -= deltaTime / 1000;
+          document.getElementById('timer').innerText = `Time Left: ${ceil(timeLeft)}s`; 
+          if (timeLeft <= 0) {
+            timeLeft = 0; 
+            timerRunning = false;
+            gameOver("Time's Up!");
+          }
+        }
+        
+        document.getElementById('status').innerText = status;
+      }
+    }
+
+    function drawTree(node, x, y, availableWidth) {
+        if (!node) return;
+        let nodeWidth = 40 + node.keys.length * 35; 
+        let nodeHeight = 35;
+        let displayNodeWidth = Math.min(nodeWidth, availableWidth * 0.95); 
+        
+        fill(node === currentNode ? color(255, 223, 127) : color(210, 180, 140)); 
+        stroke(92, 64, 51); 
+        strokeWeight(2);
+        rectMode(CENTER);
+        rect(x, y, displayNodeWidth, nodeHeight, 5); 
+
+        fill(node === currentNode ? '#000000' : '#2F1B0C'); 
+        noStroke();
+        textSize(12);
+        text(node.keys.join(' | '), x, y);
+
+        let childCount = node.children.length;
+        if (childCount > 0) {
+            let childY = y + 70; 
+            let widthPerChildSubtree = availableWidth / childCount;
+            let firstChildSlotCenterX = x - (availableWidth / 2) + (widthPerChildSubtree / 2);
+
+            for (let i = 0; i < childCount; i++) {
+                let childSlotCenterX = firstChildSlotCenterX + i * widthPerChildSubtree;
+                stroke(156, 108, 60); 
+                strokeWeight(2);
+                line(x, y + nodeHeight / 2, childSlotCenterX, childY - nodeHeight / 2);
+                drawTree(node.children[i], childSlotCenterX, childY, widthPerChildSubtree * 0.98); 
+            }
+        }
+    }
+
+
+    function setupEventListeners() {
+      document.getElementById('leftArrow').addEventListener('click', () => handleArrow('left'));
+      document.getElementById('middleArrow').addEventListener('click', () => handleArrow('middle'));
+      document.getElementById('rightArrow').addEventListener('click', () => handleArrow('right'));
+      document.getElementById('splitButton').addEventListener('click', handleSplit);
+      document.getElementById('menuButton').addEventListener('click', showMenu);
+      
+      document.getElementById('startButton').addEventListener('click', () => startGame());
+      
+      document.getElementById('playAgainButtonGameOver').addEventListener('click', () => playAgain());
+      document.getElementById('returnToMenuButtonGameOver').addEventListener('click', showMenu);
+
+      document.getElementById('playAgainButtonVictory').addEventListener('click', () => playAgain());
+      document.getElementById('returnToMenuButtonVictory').addEventListener('click', showMenu);
+      
+      document.getElementById('howToPlayButton').addEventListener('click', showHowToPlay);
+      document.getElementById('backButton').addEventListener('click', showMenu);
+    }
+
+    function startGame() {
+      gameMode = document.getElementById('gameMode').value;
+      difficulty = document.getElementById('difficulty').value;
+      level = parseInt(document.getElementById('startingLevel').value);
+      
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('howToPlayScreen').classList.add('hidden');
+      document.getElementById('gameOverScreen').classList.add('hidden'); 
+      document.getElementById('victoryScreen').classList.add('hidden'); 
+      document.getElementById('gameScreen').classList.remove('hidden');
+      
+      gameState = "playing";
+      score = 0;
+      resetLevel();
+      loop(); 
+    }
+
+    function showMenu() {
+      gameState = "menu";
+      document.getElementById('startScreen').classList.remove('hidden');
+      document.getElementById('howToPlayScreen').classList.add('hidden');
+      document.getElementById('gameScreen').classList.add('hidden');
+      document.getElementById('gameOverScreen').classList.add('hidden');
+      document.getElementById('victoryScreen').classList.add('hidden'); 
+      timerRunning = false;
+      if (typeof loop === 'function') noLoop(); 
+    }
+
+    function showHowToPlay() {
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('howToPlayScreen').classList.remove('hidden');
+    }
+
+    function playAgain() {
+      level = parseInt(document.getElementById('startingLevel').value); 
+      document.getElementById('gameOverScreen').classList.add('hidden');
+      document.getElementById('victoryScreen').classList.add('hidden'); 
+      document.getElementById('gameScreen').classList.remove('hidden'); 
+      gameState = "playing";
+      score = 0;
+      resetLevel(); 
+      loop(); 
+    }
+
+    function gameOver(reason = "Incorrect Action!") {
+      gameState = "gameover";
+      timerRunning = false;
+      document.getElementById('gameOverTitle').innerText = reason;
+      document.getElementById('finalScore').innerText = `Final Score: ${score}`; 
+      document.getElementById('gameScreen').classList.add('hidden'); 
+      document.getElementById('gameOverScreen').classList.remove('hidden'); 
+      if (typeof loop === 'function') noLoop(); 
+    }
+
+    function showVictoryScreen() {
+        gameState = "victory";
+        timerRunning = false;
+        document.getElementById('victoryScore').innerText = `Final Score: ${score}`;
+        document.getElementById('gameScreen').classList.add('hidden');
+        document.getElementById('victoryScreen').classList.remove('hidden');
+        if (typeof loop === 'function') noLoop();
+    }
+
+
+    function resetLevel() {
+      root = new Node();
+      currentNode = root; 
+      numbersToInsert = generateNumbers(level);
+      currentNumber = null; 
+      needsSplit = false;
+      
+      if (gameMode === "timed") {
+        timeLeft = getMaxTime();
+        timerRunning = true;
+        document.getElementById('timer').innerText = `Time Left: ${ceil(timeLeft)}s`;
+      } else {
+        timerRunning = true; 
+        document.getElementById('timer').innerText = gameMode === "endless" ? "Endless Mode" : "Practice Mode";
+      }
+      
+      nextNumberOrEndLevel(); 
+    }
+
+    function getMaxTime() {
+      let settings = difficultySettings[difficulty];
+      return settings.baseTime + settings.timePerLevel * level; 
+    }
+
+    function generateNumbers(currentLevel) {
+      let count = Math.max(3, 3 + currentLevel); 
+      let numbers = [];
+      let maxNum = 50 + currentLevel * 10; 
+      while (numbers.length < count) {
+        let num = floor(random(1, maxNum + 1)); 
+        if (!numbers.includes(num)) numbers.push(num);
+      }
+      for (let i = numbers.length - 1; i > 0; i--) { 
+          const j = Math.floor(Math.random() * (i + 1));
+          [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+      }
+      return numbers;
+    }
+
+    function handleIncorrectAction(message) {
+        status = message;
+        if (gameMode === "endless") {
+            gameOver("Incorrect move in Endless Mode!");
+            return;
+        }
+        
+        if (gameMode === "timed") {
+            timeLeft -= 5 * difficultySettings[difficulty].penaltyFactor;
+            document.getElementById('timer').innerText = `Time Left: ${ceil(timeLeft)}s`;
+            if (timeLeft <= 0) {
+                timeLeft = 0;
+                timerRunning = false;
+                gameOver("Time's Up after penalty!");
+                return;
+            }
+        }
+        updateButtons(); 
+    }
+
+    function handleArrow(direction) {
+        if ((gameMode === "timed" && (!timerRunning || timeLeft <= 0))) { // Removed needsSplit from here
+            updateButtons(); 
+            return;
+        }
+        if (!currentNode) { 
+            status = "Select a node first (usually the root after a split or new number).";
+            return;
+        }
+        if (currentNumber === null) {
+            status = "No number to insert. Level might be complete or error.";
+            return;
+        }
+
+        // If needsSplit is true, arrow buttons should not perform navigation/insertion.
+        // Instead, they could be treated as an incorrect action if the player is supposed to split.
+        if (needsSplit) {
+            handleIncorrectAction("A split is required! Use the 'Split Node' button.");
+            updateButtons();
+            return;
+        }
+
+        if (!currentNode.isLeaf()) {
+            let targetChildIndex = -1;
+            let expectedDirection = '';
+
+            if (currentNode.keys.length === 1) { 
+                if (currentNumber < currentNode.keys[0]) {
+                    targetChildIndex = 0; expectedDirection = 'left';
+                } else { 
+                    targetChildIndex = 1; expectedDirection = 'right';
+                }
+            } else if (currentNode.keys.length === 2) { 
+                if (currentNumber < currentNode.keys[0]) {
+                    targetChildIndex = 0; expectedDirection = 'left';
+                } else if (currentNumber >= currentNode.keys[0] && currentNumber < currentNode.keys[1]) {
+                    targetChildIndex = 1; expectedDirection = 'middle';
+                } else { 
+                    targetChildIndex = 2; expectedDirection = 'right';
+                }
+            }
+            
+            if (direction === expectedDirection && targetChildIndex !== -1 && currentNode.children[targetChildIndex]) {
+                currentNode = currentNode.children[targetChildIndex];
+                status = `Navigated. Current Node: [${currentNode.keys.join(', ')}]. Inserting: ${currentNumber}.`;
+                if (currentNode.isLeaf()) {
+                     status = `Reached Leaf: [${currentNode.keys.join(', ')}]. Insert ${currentNumber}.`;
+                }
+            } else {
+                handleIncorrectAction(`Wrong navigation for ${currentNumber} from [${currentNode.keys.join(', ')}]. Chose ${direction}, expected ${expectedDirection}.`);
+            }
+
+        } else {
+            let validInsertion = false;
+            const keyCount = currentNode.keys.length;
+
+            if (keyCount === 0) { 
+                validInsertion = true; 
+            } else if (keyCount === 1) { 
+                if (direction === 'left' && currentNumber < currentNode.keys[0]) validInsertion = true;
+                else if (direction === 'right' && currentNumber >= currentNode.keys[0]) validInsertion = true;
+            } else if (keyCount === 2) { 
+                if (direction === 'left' && currentNumber < currentNode.keys[0]) validInsertion = true;
+                else if (direction === 'middle' && currentNumber >= currentNode.keys[0] && currentNumber < currentNode.keys[1]) validInsertion = true;
+                else if (direction === 'right' && currentNumber >= currentNode.keys[1]) validInsertion = true;
+            }
+
+            if (validInsertion) {
+                insertAtLeaf(); 
+            } else {
+                let message = `Cannot insert ${currentNumber} at '${direction}' in leaf [${currentNode.keys.join(', ')}].`;
+                if (keyCount === 1 && direction === 'middle') message = `'Middle' not valid for inserting into leaf with one key. Use Left/Right.`;
+                handleIncorrectAction(message);
+            }
+        }
+        updateButtons();
+    }
+
+    function updateButtons() {
+        let canInteract = gameState === "playing" && (gameMode !== "timed" || (timerRunning && timeLeft > 0));
+        
+        document.getElementById('splitButton').disabled = !canInteract; // Split button primarily disabled by canInteract
+
+        // Arrows are disabled if interaction isn't allowed, or no node/number,
+        // OR if a split is pending (to force the split action).
+        let arrowsDisabled = !canInteract || !currentNode || currentNumber === null || needsSplit;
+
+        document.getElementById('leftArrow').disabled = arrowsDisabled;
+        document.getElementById('middleArrow').disabled = arrowsDisabled; 
+        document.getElementById('rightArrow').disabled = arrowsDisabled;
+    }
+
+
+    function insertAtLeaf() { 
+      currentNode.keys.push(currentNumber);
+      currentNode.keys.sort((a, b) => a - b);
+      
+      if (currentNode.isFull()) {
+        needsSplit = true;
+        status = `Node [${currentNode.keys.join(',')}] is full! Click 'Split Node'.`;
+      } else {
+        score += 10; 
+        status = `Inserted ${currentNumber}. Node: [${currentNode.keys.join(', ')}].`;
+        nextNumberOrEndLevel(); 
+      }
+      updateButtons(); 
+    }
+
+    function handleSplit() {
+      if (gameMode === "timed" && !timerRunning && timeLeft <=0) return; 
+      if (!needsSplit) { // If split is not actually required
+          handleIncorrectAction("Split is not needed for the current node!");
+          return;
+      }
+      // If split IS needed, proceed
+      completeSplit(currentNode); 
+    }
+
+    function completeSplit(nodeToSplit) {
+      let midKey = nodeToSplit.keys[1];
+      let leftChildNode = new Node();
+      leftChildNode.keys = [nodeToSplit.keys[0]];
+      leftChildNode.parent = nodeToSplit.parent;
+
+      let rightChildNode = new Node();
+      rightChildNode.keys = [nodeToSplit.keys[2]];
+      rightChildNode.parent = nodeToSplit.parent;
+
+      if (!nodeToSplit.isLeaf()) {
+        if(nodeToSplit.children.length === 4) { 
+            leftChildNode.children = nodeToSplit.children.slice(0, 2);
+            rightChildNode.children = nodeToSplit.children.slice(2, 4);
+            leftChildNode.children.forEach(c => c.parent = leftChildNode);
+            rightChildNode.children.forEach(c => c.parent = rightChildNode);
+        }
+      }
+
+      if (nodeToSplit.parent === null) { 
+        root = new Node();
+        root.keys = [midKey];
+        root.children = [leftChildNode, rightChildNode];
+        leftChildNode.parent = root;
+        rightChildNode.parent = root;
+        currentNode = root; 
+      } else {
+        let parent = nodeToSplit.parent;
+        parent.keys.push(midKey);
+        parent.keys.sort((a, b) => a - b);
+
+        let indexInParent = parent.children.indexOf(nodeToSplit);
+        parent.children.splice(indexInParent, 1, leftChildNode, rightChildNode); 
+
+        if (parent.isFull()) {
+          currentNode = parent; 
+          needsSplit = true; 
+          status = `Parent [${parent.keys.join(',')}] now full! Click 'Split Node'.`;
+          updateButtons(); 
+          return; 
+        } else {
+          currentNode = root; 
+        }
+      }
+      
+      score += 20; 
+      needsSplit = false; 
+      status = `Split complete! Promoted ${midKey}.`;
+      
+      nextNumberOrEndLevel();
+    }
+
+
+    function nextNumberOrEndLevel() {
+      if (numbersToInsert.length === 0) { 
+        let levelBonus = 50;
+        timeBonus = 0; 
+        if (gameMode === "timed") {
+          timeBonus = Math.floor(timeLeft * 0.5); 
+        }
+        score += levelBonus + timeBonus; 
+
+        if (gameMode === "timed" && level === TIMED_MODE_MAX_LEVEL) {
+            status = `Level ${level} complete! Victory!`; 
+            showVictoryScreen(); 
+            return; 
+        }
+        
+        level++;
+        status = `Level ${level-1} complete! +${levelBonus} pts${(timeBonus > 0 ? ` +${timeBonus} time bonus` : '')}. Next: Lvl ${level}`;
+        resetLevel(); 
+      } else {
+        currentNumber = numbersToInsert.shift();
+        status = `Insert ${currentNumber} into the tree! Navigate from root.`;
+        currentNode = root; 
+      }
+      updateButtons();
+    }
+  </script>
+</body>
+</html>
+
